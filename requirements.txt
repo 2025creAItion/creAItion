@@ -1,0 +1,22 @@
+# --- Core Dependencies ---
+fastapi
+uvicorn[standard]
+gradio
+
+# --- OpenAI + LangGraph ---
+openai>=1.0.0
+langgraph>=0.1.23
+pydantic>=2.0.0
+
+# --- RAG (PDF Reader + Text Splitter + Embeddings + VectorDB) ---
+pypdf
+pymupdf
+chromadb
+langchain-text-splitters
+sentence-transformers
+
+# --- Utility ---
+python-dotenv
+tqdm
+
+# pip install -r requirements.txt 하시면 됩니다

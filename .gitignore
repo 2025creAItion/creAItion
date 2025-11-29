@@ -1,0 +1,30 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Virtual environment ---
+.venv/
+venv/
+env/
+
+# --- OS Files ---
+.DS_Store
+
+# --- Environment variables ---
+.env
+
+# --- Gradio cache ---
+.gradio/
+
+# --- ChromaDB persistent directory ---
+rag_db/
+chroma/
+index_store/
+
+# --- VSCode settings ---
+.vscode/
+
+# --- FastAPI / Uvicorn logs ---
+*.log

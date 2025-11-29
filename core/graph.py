@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END  # type: ignore
-
+from typing import Any, Dict, List
 from .state import AgentState
 from .agent_config import get_client, LLM_MODEL
 
@@ -9,22 +9,35 @@ from .agent_config import get_client, LLM_MODEL
 # ------------------------------
 
 
-def call_llm(state: AgentState) -> AgentState:
-    """LLM 호출 노드.
-
-    - 역할:
-        - state.messages(대화 내역)을 기반으로 LLM을 호출
-        - LLM 응답을 messages 리스트에 추가
-        - Tool 호출이 필요한 경우 state.tool_calls에 함수 호출 정보를 추가
-    - 현재는 구조만 두고, 실제 LLM 호출/Tool 호출 파싱은 TODO로 남김.
+def call_llm(state: AgentState) -> Dict[str, Any]:
     """
-    # TODO:
-    # 1) client = get_client()로 OpenAI 클라이언트 생성
-    # 2) state.messages를 prompt로 사용해 LLM_MODEL 호출
-    # 3) 응답 메시지를 state.messages에 append
-    # 4) Tool 호출 정보가 있으면 state.tool_calls에 추가
-    return state
+    LLM 호출 노드.
 
+    - 입력: state.messages (user/assistant 대화 내역)
+    - 출력: {"messages": [assistant_msg]} 형태의 delta state
+    """
+    client = get_client()
+
+    # state.messages는 [{"role": "...", "content": "..."}] 형식이라고 가정
+    messages: List[Dict[str, Any]] = state.messages
+
+    completion = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=messages,
+    )
+
+    assistant_content = completion.choices[0].message.content or ""
+
+    assistant_msg = {
+        "role": "assistant",
+        "content": assistant_content,
+    }
+
+    # LangGraph의 Annotated[list, add] 규칙에 맞게
+    # "추가할 메시지 하나만" 리스트로 싸서 반환
+    return {
+        "messages": [assistant_msg]
+    }
 
 def execute_tools(state: AgentState) -> AgentState:
     """Tool 실행 노드.
@@ -37,7 +50,7 @@ def execute_tools(state: AgentState) -> AgentState:
     # TODO:
     # 1) tool_manager를 통해 state.tool_calls를 순회하며 실제 함수 호출
     # 2) 결과를 state.messages 또는 별도 필드(예: tool_results)에 추가
-    return state
+    return {}
 
 
 def retrieve_rag(state: AgentState) -> AgentState:
@@ -51,7 +64,7 @@ def retrieve_rag(state: AgentState) -> AgentState:
     # TODO:
     # 1) rag.rag_db / document_processor 등을 호출해 관련 문서 검색
     # 2) 검색 결과를 state에 저장 (예: state.rag_context)
-    return state
+    return {}
 
 
 def check_reflection(state: AgentState) -> AgentState:
@@ -65,7 +78,7 @@ def check_reflection(state: AgentState) -> AgentState:
     # TODO:
     # 1) 대화 턴 수나 중요도 기준으로 reflection 필요 여부 판단
     # 2) 필요하면 state에 표시(예: state.needs_reflection = True)
-    return state
+    return {}
 
 
 def save_reflection(state: AgentState) -> AgentState:
@@ -78,7 +91,7 @@ def save_reflection(state: AgentState) -> AgentState:
     # TODO:
     # 1) memory.reflection_handler.save_reflection(state)를 호출
     # 2) 요약 결과/메타데이터를 state.reflection_notes 등에 저장
-    return state
+    return {}
 
 
 # ------------------------------
