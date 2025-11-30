@@ -10,7 +10,7 @@ class AgentState(BaseModel):
     messages: Annotated[List[Dict], operator.add] = Field(default_factory=list)
 
     # LLM이 만든 Tool 호출 정보
-    tool_calls: Annotated[List[Dict], operator.add] = Field(default_factory=list)
+    tool_calls: List[Dict] = Field(default_factory=list)
 
     # Tool 실행 결과
     tool_results: Annotated[List[Dict], operator.add] = Field(default_factory=list)
