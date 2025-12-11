@@ -341,7 +341,6 @@ def check_reflection(state: AgentState) -> Dict[str, Any]:
 # save_reflection
 # ------------------------------
 
-
 def save_reflection(state: AgentState) -> Dict[str, Any]:
     """
     RAG 컨텍스트와 최종 답변을 바탕으로 LLM을 호출하여 Reflection 노트를 요약 생성하고,
@@ -456,10 +455,17 @@ def should_use_tool(state: AgentState) -> str:
         )
         return "final_answer_to_reflection"
 
-    # 3. Tool 호출도 없고 RAG 컨텍스트도 없으면 (대개 첫 호출) → RAG 검색 시도
-    print("[Router] Tool 호출 없음. RAG 검색(retrieve_rag)으로 이동.")
-    return "no_tool"
+    # 3. 방금 Tool을 사용하고 결과를 받아서 답변한 경우인지 확인
+    # 메시지 기록의 바로 앞(뒤에서 2번째)이 'tool' 메시지라면,
+    # LLM이 도구 결과를 보고 막 답변을 마친 상태이므로 RAG로 가지 말고 종료해야 함
+    messages = state.messages
+    if len(messages) >= 2 and hasattr(messages[-2], "role") and messages[-2].role == "tool":
+        print("[Router] Tool 실행 결과 기반 답변 완료. Reflection으로 이동.")
+        return "final_answer_to_reflection"
 
+    # 4. Tool 호출도 없고, RAG도 안 썼고, 방금 툴을 쓴 것도 아님 -> (첫 질문) RAG 검색 시도
+    print("[Router] Tool 호출 없음 & Tool 이력 없음. RAG 검색(retrieve_rag)으로 이동.")
+    return "no_tool"
 
 # ------------------------------
 # 그래프 빌드 함수
