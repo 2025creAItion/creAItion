@@ -14,13 +14,16 @@ env/
 
 # --- Environment variables ---
 .env
+docs/
 
 # --- Gradio cache ---
 .gradio/
 
 # --- ChromaDB persistent directory ---
 rag_db/
+chroma_db
 chroma_db/
+**chroma_db/**
 index_store/
 *.sqlite3
 *.bin

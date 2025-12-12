@@ -87,13 +87,31 @@ def chat_fn(
         )
     else:
         for m in raw_messages:
+            """
+            raw_messages가 dict인 경우, list인 경우, text인 경우 따로 처리하지 않으면 이전 메세지의 key값까지 메세지에 출력되어서 수정함
+            """
             if isinstance(m, dict) and "role" in m and "content" in m:
-                normalized_messages.append(
-                    {
-                        "role" : str(m["role"]),
-                        "content": str(m["content"]),
-                    }
-                )
+                if isinstance(m['content'], dict):
+                    normalized_messages.append(
+                        {
+                            "role" : str(m["role"]),
+                            "content": str(m["content"]),
+                        }
+                    )
+                elif isinstance(m['content'], list):
+                    normalized_messages.append(
+                        {
+                            "role" : str(m["role"]),
+                            "content": m["content"][0]['text'],
+                        }
+                    )
+                else:
+                    normalized_messages.append(
+                        {
+                            "role" : str(m["role"]),
+                            "content": str(m["content"]),
+                        }
+                    ) 
             else:
                 normalized_messages.append(
                     {

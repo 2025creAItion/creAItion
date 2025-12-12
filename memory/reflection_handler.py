@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Any, Union
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
@@ -46,26 +46,58 @@ class ReflectionHandler:
         
         return response.choices[0].message.content
 
-    def save_reflection(self, state: AgentState) -> Dict[str, str]:
+    def save_reflection(self, state_or_note: Union[AgentState, Dict[str, Any]]) -> Dict[str, str]:
         """
-        Graph Node에서 호출: 현재 상태의 메시지를 요약하여 LTM에 저장
+        Graph Node에서 호출: 현재 상태(AgentState) 또는 reflection note(dict)를 받아
+        장기 기억(LTM)에 저장합니다.
+
+        이 메서드는 두 가지 입력을 지원합니다:
+        - AgentState (또는 dict with 'messages'): 내부적으로 LLM을 이용해 요약을 생성하고 저장합니다.
+        - reflection note dict (예: {'user_query':..., 'context_used_count':..., 'note': '...'}):
+          이미 생성된 요약('note')이 있으면 그 내용을 바로 저장합니다.
         """
-        messages = state.get("messages", [])
+
+        # Case A: dict with a pre-made reflection note that contains 'note'
+        if isinstance(state_or_note, dict) and "note" in state_or_note and isinstance(state_or_note.get("note"), str):
+            summary = state_or_note["note"]
+            if not summary:
+                return {"status": "empty_note"}
+
+            doc = Document(page_content=summary, metadata={"type": "reflection_summary"})
+            try:
+                self.vector_store.add_documents([doc])
+                print(f"[ReflectionHandler] 장기 기억 저장 완료 (note): {summary[:50]}...")
+                return {"summary": summary}
+            except Exception as e:
+                return {"status": "error", "reason": str(e)}
+
+        # Case B: AgentState-like object with messages -> summarize then store
+        messages = None
+        try:
+            # support both AgentState and plain dict
+            if hasattr(state_or_note, "get"):
+                messages = state_or_note.get("messages", [])
+            else:
+                messages = getattr(state_or_note, "messages", [])
+        except Exception:
+            messages = []
+
         if not messages:
             return {"status": "no_messages"}
 
         # 1. 대화 요약 (Reflection)
         summary = self._summarize_messages(messages)
-        
+
         # 2. 요약 내용을 메타데이터와 함께 Document로 변환
         doc = Document(page_content=summary, metadata={"type": "reflection_summary"})
-        
+
         # 3. Chroma DB(LTM Collection)에 저장
-        self.vector_store.add_documents([doc])
-        
-        print(f"[ReflectionHandler] 장기 기억 저장 완료: {summary[:50]}...")
-        
-        return {"summary": summary}
+        try:
+            self.vector_store.add_documents([doc])
+            print(f"[ReflectionHandler] 장기 기억 저장 완료: {summary[:50]}...")
+            return {"summary": summary}
+        except Exception as e:
+            return {"status": "error", "reason": str(e)}
 
     def retrieve_memories(self, query: str, k: int = 2) -> List[str]:
         """

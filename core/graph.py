@@ -32,6 +32,27 @@ SYSTEM_PROMPT_PATH = os.path.join(
     "system.txt",
 )
 
+
+def _read_system_prompt() -> str:
+    """안전하게 system prompt 파일을 읽어 반환합니다. 실패 시 빈 문자열 반환."""
+    try:
+        if os.path.exists(SYSTEM_PROMPT_PATH):
+            with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
+                return f.read().strip() or ""
+    except Exception:
+        pass
+    return ""
+
+
+def _format_rag_context(rag_context: List[Dict[str, Any]]) -> str:
+    """RAG 문서 리스트를 LLM system message에 쓸 문자열로 포맷합니다."""
+    items = []
+    for doc in rag_context:
+        source_info = f"({doc.get('source', 'unknown')} 페이지: {doc.get('page', 'N/A')})"
+        items.append(f"- {doc.get('content', '')} {source_info}")
+    return "\n".join(items)
+
+
 # ------------------------------
 # call_llm
 # ------------------------------
@@ -59,20 +80,9 @@ def call_llm(state: AgentState) -> Dict[str, Any]:
     system_messages: List[Dict[str, Any]] = []
 
     # 1-1) system.txt
-    if os.path.exists(SYSTEM_PROMPT_PATH):
-        try:
-            with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
-                base_system = f.read().strip()
-            if base_system:
-                system_messages.append(
-                    {
-                        "role": "system",
-                        "content": base_system,
-                    }
-                )
-        except Exception:
-            # system.txt 읽기 실패 시 무시
-            pass
+    base_system = _read_system_prompt()
+    if base_system:
+        system_messages.append({"role": "system", "content": base_system})
 
     # 1-2) 최신 user 쿼리
     user_query = ""
@@ -106,14 +116,7 @@ def call_llm(state: AgentState) -> Dict[str, Any]:
     # 1-4) RAG 시스템 메시지
     if rag_context:
         print("[LLM_CALL] RAG 컨텍스트를 활용하여 최종 답변 생성.")
-
-        context_items = []
-        for doc in rag_context:
-            source_info = f"({doc.get('source', 'unknown')} 페이지: {doc.get('page', 'N/A')})"
-            context_items.append(f"- {doc.get('content', '')} {source_info}")
-
-        context_str = "\n".join(context_items)
-
+        context_str = _format_rag_context(rag_context)
         system_messages.append(
             {
                 "role": "system",
@@ -341,7 +344,6 @@ def check_reflection(state: AgentState) -> Dict[str, Any]:
 # save_reflection
 # ------------------------------
 
-
 def save_reflection(state: AgentState) -> Dict[str, Any]:
     """
     RAG 컨텍스트와 최종 답변을 바탕으로 LLM을 호출하여 Reflection 노트를 요약 생성하고,
@@ -456,10 +458,17 @@ def should_use_tool(state: AgentState) -> str:
         )
         return "final_answer_to_reflection"
 
-    # 3. Tool 호출도 없고 RAG 컨텍스트도 없으면 (대개 첫 호출) → RAG 검색 시도
-    print("[Router] Tool 호출 없음. RAG 검색(retrieve_rag)으로 이동.")
-    return "no_tool"
+    # 3. 방금 Tool을 사용하고 결과를 받아서 답변한 경우인지 확인
+    # 메시지 기록의 바로 앞(뒤에서 2번째)이 'tool' 메시지라면,
+    # LLM이 도구 결과를 보고 막 답변을 마친 상태이므로 RAG로 가지 말고 종료해야 함
+    messages = state.messages
+    if len(messages) >= 2 and hasattr(messages[-2], "role") and messages[-2].role == "tool":
+        print("[Router] Tool 실행 결과 기반 답변 완료. Reflection으로 이동.")
+        return "final_answer_to_reflection"
 
+    # 4. Tool 호출도 없고, RAG도 안 썼고, 방금 툴을 쓴 것도 아님 -> (첫 질문) RAG 검색 시도
+    print("[Router] Tool 호출 없음 & Tool 이력 없음. RAG 검색(retrieve_rag)으로 이동.")
+    return "no_tool"
 
 # ------------------------------
 # 그래프 빌드 함수

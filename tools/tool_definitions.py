@@ -18,8 +18,8 @@ class WebSearchInput(BaseModel):
 
 def web_search(input: WebSearchInput) -> Dict[str, Any]:
     """구글 검색 API를 사용하여 검색 결과를 반환합니다."""
-    api_key = os.getenv("GOOGLE_API_KEY")
-    search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+    api_key = os.getenv("GOOGLE_API_KEY", "").strip().replace('"', '')
+    search_engine_id = os.getenv("GOOGLE_SEARCH_ENGINE_ID", "").strip().replace('"', '')
 
     if not api_key or not search_engine_id:
         raise RuntimeError(
