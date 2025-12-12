@@ -64,6 +64,7 @@ def execute_tools(tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 results.append({
                     "tool_call_id": tool_call_id,
                     "role": "tool",
+                    "name":"unknown",
                     "content": "툴 이름이 제공되지 않았습니다."
                 })
                 continue
@@ -72,6 +73,7 @@ def execute_tools(tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 results.append({
                     "tool_call_id": tool_call_id,
                     "role": "tool",
+                    "name": function_name,
                     "content": f"알 수 없는 툴: '{function_name}'"
                 })
                 continue
@@ -85,6 +87,7 @@ def execute_tools(tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 results.append({
                     "tool_call_id": tool_call_id,
                     "role": "tool",
+                    "name": function_name,
                     "content": f"인자 파싱 오류: '{arguments_str}'는 유효한 JSON이 아닙니다."
                 })
                 continue
@@ -114,6 +117,7 @@ def execute_tools(tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             results.append({
                 "tool_call_id": tool_call_id,
                 "role": "tool",
+                "name":function_name,
                 "content": content
             })
 
@@ -121,6 +125,7 @@ def execute_tools(tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             results.append({
                 "tool_call_id": tool_call.get("id", "unknown"),
                 "role": "tool",
+                "name": tool_call.get("function", {}).get("name","unknown"),
                 "content": f"툴 호출 처리 중 오류 발생: {str(e)}"
             })
 

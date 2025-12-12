@@ -248,6 +248,7 @@ def execute_tools(state: AgentState) -> Dict[str, Any]:
     tool_messages = [
         {
             "role": "tool",
+            "name": result.get("tool_name"),
             "content": result["content"],
             "tool_call_id": result["tool_call_id"],
         }
@@ -462,7 +463,7 @@ def should_use_tool(state: AgentState) -> str:
     # 메시지 기록의 바로 앞(뒤에서 2번째)이 'tool' 메시지라면,
     # LLM이 도구 결과를 보고 막 답변을 마친 상태이므로 RAG로 가지 말고 종료해야 함
     messages = state.messages
-    if len(messages) >= 2 and hasattr(messages[-2], "role") and messages[-2].role == "tool":
+    if len(messages) >= 2 and isinstance(messages[-2], dict) and messages[-2].get("role") == "tool":
         print("[Router] Tool 실행 결과 기반 답변 완료. Reflection으로 이동.")
         return "final_answer_to_reflection"
 

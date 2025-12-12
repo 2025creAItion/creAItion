@@ -43,6 +43,7 @@ def chat_fn(
     - tool_log_state, rag_log_state, memory_log_state:
         오른쪽 JSON 패널들이 들고 있는 상태
     """
+    print("[chat_fn] called",message)
     if history is None:
         history = []
 
@@ -70,7 +71,7 @@ def chat_fn(
 
     # 4) 결과에서 각 필드를 꺼냄
     raw_messages = _extract_attr(result, "messages", updated_messages)
-    tool_calls = _extract_attr(result, "tool_calls", tool_log_state or [])
+    tool_calls = _extract_attr(result, "tool_results", tool_log_state or [])
     rag_context = _extract_attr(result, "rag_context", rag_log_state or [])
     reflection_notes = _extract_attr(result, "reflection_notes", memory_log_state or [])
 
@@ -119,6 +120,16 @@ def chat_fn(
                         "content": str(m),
                     }
                 )
+    last_assistant = next(
+        (m for m in reversed(normalized_messages)
+         if isinstance(m,dict) and m.get("role") == "assistant" and str(m.get("content","")).strip()),
+         None    
+    )
+
+    if last_assistant:
+        final_history = updated_messages + [last_assistant]
+    else:
+        final_history = updated_messages + [{"role":"assistant","content":"(답변 생성 실패)"}]
 
     # Chatbot, Tool 로그, RAG 로그, Memory 로그를 한 번에 업데이트
     return normalized_messages, tool_calls, rag_context, reflection_notes
@@ -180,13 +191,6 @@ def create_gradio_app():
         # ------------------------------
         # 이벤트 연결
         # ------------------------------
-
-        # Enter로 전송
-        user_input.submit(
-            fn=chat_fn,
-            inputs=[user_input, chat, tool_log, rag_log, memory_log],
-            outputs=[chat, tool_log, rag_log, memory_log],
-        )
 
         # 버튼 클릭으로 전송
         send_btn.click(
