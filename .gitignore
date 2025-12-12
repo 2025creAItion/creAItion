@@ -11,17 +11,19 @@ env/
 
 # --- OS Files ---
 .DS_Store
-.chroma_db
 
 # --- Environment variables ---
 .env
+docs/
 
 # --- Gradio cache ---
 .gradio/
 
 # --- ChromaDB persistent directory ---
 rag_db/
-chroma/
+chroma_db
+chroma_db/
+**chroma_db/**
 index_store/
 
 # --- VSCode settings ---

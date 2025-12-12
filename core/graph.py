@@ -32,6 +32,27 @@ SYSTEM_PROMPT_PATH = os.path.join(
     "system.txt",
 )
 
+
+def _read_system_prompt() -> str:
+    """안전하게 system prompt 파일을 읽어 반환합니다. 실패 시 빈 문자열 반환."""
+    try:
+        if os.path.exists(SYSTEM_PROMPT_PATH):
+            with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
+                return f.read().strip() or ""
+    except Exception:
+        pass
+    return ""
+
+
+def _format_rag_context(rag_context: List[Dict[str, Any]]) -> str:
+    """RAG 문서 리스트를 LLM system message에 쓸 문자열로 포맷합니다."""
+    items = []
+    for doc in rag_context:
+        source_info = f"({doc.get('source', 'unknown')} 페이지: {doc.get('page', 'N/A')})"
+        items.append(f"- {doc.get('content', '')} {source_info}")
+    return "\n".join(items)
+
+
 # ------------------------------
 # call_llm
 # ------------------------------
@@ -59,20 +80,9 @@ def call_llm(state: AgentState) -> Dict[str, Any]:
     system_messages: List[Dict[str, Any]] = []
 
     # 1-1) system.txt
-    if os.path.exists(SYSTEM_PROMPT_PATH):
-        try:
-            with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
-                base_system = f.read().strip()
-            if base_system:
-                system_messages.append(
-                    {
-                        "role": "system",
-                        "content": base_system,
-                    }
-                )
-        except Exception:
-            # system.txt 읽기 실패 시 무시
-            pass
+    base_system = _read_system_prompt()
+    if base_system:
+        system_messages.append({"role": "system", "content": base_system})
 
     # 1-2) 최신 user 쿼리
     user_query = ""
@@ -106,14 +116,7 @@ def call_llm(state: AgentState) -> Dict[str, Any]:
     # 1-4) RAG 시스템 메시지
     if rag_context:
         print("[LLM_CALL] RAG 컨텍스트를 활용하여 최종 답변 생성.")
-
-        context_items = []
-        for doc in rag_context:
-            source_info = f"({doc.get('source', 'unknown')} 페이지: {doc.get('page', 'N/A')})"
-            context_items.append(f"- {doc.get('content', '')} {source_info}")
-
-        context_str = "\n".join(context_items)
-
+        context_str = _format_rag_context(rag_context)
         system_messages.append(
             {
                 "role": "system",
