@@ -20,8 +20,10 @@ env/
 
 # --- ChromaDB persistent directory ---
 rag_db/
-chroma/
+chroma_db/
 index_store/
+*.sqlite3
+*.bin
 
 # --- VSCode settings ---
 .vscode/

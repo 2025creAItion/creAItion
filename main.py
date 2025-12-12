@@ -6,8 +6,6 @@ import gradio as gr
 
 from ui.gradio_interface import create_gradio_app
 
-
-
 app = FastAPI()
 
 gr_app = create_gradio_app()
