@@ -11,6 +11,7 @@ env/
 
 # --- OS Files ---
 .DS_Store
+.chroma_db
 
 # --- Environment variables ---
 .env
