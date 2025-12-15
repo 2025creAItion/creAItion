@@ -57,7 +57,7 @@ class ReflectionHandler:
           이미 생성된 요약('note')이 있으면 그 내용을 바로 저장합니다.
         """
 
-        # Case A: dict with a pre-made reflection note that contains 'note'
+        # Case A: 'note'가 포함된 reflection note dict 미리 생성
         if isinstance(state_or_note, dict) and "note" in state_or_note and isinstance(state_or_note.get("note"), str):
             summary = state_or_note["note"]
             if not summary:
@@ -71,10 +71,10 @@ class ReflectionHandler:
             except Exception as e:
                 return {"status": "error", "reason": str(e)}
 
-        # Case B: AgentState-like object with messages -> summarize then store
+        # Case B: 메시지가 포함된 AgentState-like 객체 -> 요약 후 저장
         messages = None
         try:
-            # support both AgentState and plain dict
+            # AgentState와 plain dict 모두 지원
             if hasattr(state_or_note, "get"):
                 messages = state_or_note.get("messages", [])
             else:
