@@ -132,7 +132,7 @@ def chat_fn(
         final_history = updated_messages + [{"role":"assistant","content":"(답변 생성 실패)"}]
 
     # Chatbot, Tool 로그, RAG 로그, Memory 로그를 한 번에 업데이트
-    return normalized_messages, tool_calls, rag_context, reflection_notes
+    return final_history, tool_calls, rag_context, reflection_notes
 
 
 # ------------------------------
